@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Search - Apollo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        body {
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .main-container {
+            padding: 30px 20px;
+        }
+        .search-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #667eea;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #333;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            padding: 10px 14px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .form-control::placeholder {
+            color: #aaa;
+        }
+        .range-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .range-group .form-control {
+            flex: 1;
+        }
+        .range-separator {
+            color: #999;
+            font-weight: 500;
+        }
+        .btn-search {
+            background: var(--primary-gradient);
+            border: none;
+            padding: 12px 50px;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            color: white;
+        }
+        .btn-search:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+        .btn-clear {
+            background: #f0f0f0;
+            color: #555;
+            border: none;
+            padding: 12px 35px;
+            font-weight: 600;
+            border-radius: 8px;
+        }
+        .btn-clear:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-export {
+            background: #0d6efd;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            border-radius: 8px;
+        }
+        .btn-export:hover {
+            background: #0b5ed7;
+            color: white;
+        }
+        .btn-export:disabled {
+            background: #adb5bd;
+            cursor: not-allowed;
+        }
+        .col-checkbox { width: 42px; text-align: center; vertical-align: middle; }
+        .btn-back {
+            background: #f0f0f0;
+            color: #555;
+            border: none;
+            padding: 8px 20px;
+            font-weight: 600;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-back:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .results-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .results-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 18px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .results-header h5 {
+            margin: 0;
+            font-weight: 600;
+        }
+        .contacts-header {
+            background: #f8f9fa;
+            padding: 15px 25px;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .contacts-header h6 {
+            margin: 0;
+            color: #333;
+            font-weight: 600;
+        }
+        .table {
+            margin: 0;
+        }
+        .table thead th {
+            background: #fafbfc;
+            border-bottom: 2px solid #e8e8e8;
+            font-weight: 600;
+            color: #444;
+            padding: 14px 18px;
+            font-size: 0.9rem;
+        }
+        .table tbody td {
+            padding: 14px 18px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .table tbody tr:hover {
+            background: #fafbfc;
+        }
+        .table tbody tr.clickable-row {
+            cursor: pointer;
+        }
+        .table tbody tr.clickable-row:hover {
+            background: #f0f4ff;
+        }
+        .company-logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            object-fit: cover;
+            border: 1px solid #eee;
+        }
+        .company-logo-placeholder {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .company-name {
+            font-weight: 600;
+            color: #333;
+        }
+        .company-name-link {
+            font-weight: 600;
+            color: #667eea;
+            text-decoration: none;
+        }
+        .company-name-link:hover {
+            text-decoration: underline;
+            color: #764ba2;
+        }
+        .company-domain {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .company-domain:hover {
+            text-decoration: underline;
+        }
+        .badge-industry {
+            background: #e8f0fe;
+            color: #1967d2;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .badge-revenue {
+            background: #e6f4ea;
+            color: #137333;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .badge-seniority {
+            background: #fce8e6;
+            color: #c5221f;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .badge-title {
+            background: #fff3e0;
+            color: #e65100;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        .alert-custom {
+            border-radius: 8px;
+            border: none;
+        }
+        .spinner-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.8);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .loading .spinner-overlay {
+            display: flex;
+        }
+        .api-link {
+            font-size: 0.85rem;
+            color: #667eea;
+        }
+        select[multiple] {
+            min-height: 120px;
+        }
+        .select2-container--bootstrap-5 .select2-selection {
+            min-height: 44px;
+        }
+        .contact-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .contact-email {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .contact-email:hover {
+            text-decoration: underline;
+        }
+        #contactsSection {
+            display: none;
+        }
+        .view-contacts-icon {
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="spinner-overlay">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'company_search' %}">Apollo Company Search</a>
+            <div class="ms-auto">
+                <a href="/api/docs/" target="_blank" class="api-link">
+                    API Docs (Swagger)
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="container">
+            <!-- Filters Card -->
+            <div class="search-card">
+                <form method="POST" id="searchForm">
+                    {% csrf_token %}
+                    
+                    <!-- Row 1: Name, Domains -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.company_name.label }}</label>
+                            {{ form.company_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.domains.label }}</label>
+                            {{ form.domains }}
+                        </div>
+                    </div>
+                    
+                    <!-- Row 2: Locations -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.locations_included.label }}</label>
+                            {{ form.locations_included }}
+                            <small class="text-muted">Headquarters location – comma-separated (e.g., Pakistan, Lahore, United States)</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.locations_excluded.label }}</label>
+                            {{ form.locations_excluded }}
+                            <small class="text-muted">Exclude these (e.g. United Arab Emirates) to narrow results</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Row 3: Employee Range, Revenue Range -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Employee Range</label>
+                            <div class="range-group">
+                                {{ form.employees_min }}
+                                <span class="range-separator">to</span>
+                                {{ form.employees_max }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Revenue Range (in Millions $)</label>
+                            <div class="range-group">
+                                {{ form.revenue_min }}
+                                <span class="range-separator">to</span>
+                                {{ form.revenue_max }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Row 4: Organization Keyword -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-12">
+                            <label class="form-label">{{ form.organization_keyword.label }}</label>
+                            {{ form.organization_keyword }}
+                            <small class="text-muted">Comma-separated (e.g., caster, software)</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Row 5: Industries -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.industries.label }}</label>
+                            {{ form.industries }}
+                            <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.industries_exclude.label }}</label>
+                            {{ form.industries_exclude }}
+                        </div>
+                    </div>
+                    
+                    <!-- Row 5b: Org job titles, Org job locations, Lookalike IDs -->
+                    <!-- <div class="row g-4 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.organization_job_titles.label }}</label>
+                            {{ form.organization_job_titles }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.organization_job_locations.label }}</label>
+                            {{ form.organization_job_locations }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.lookalike_organization_ids.label }}</label>
+                            {{ form.lookalike_organization_ids }}
+                        </div>
+                    </div> -->
+                    
+                    <!-- Row 6: Page, Per page -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-2">
+                            <label class="form-label">{{ form.page.label }}</label>
+                            {{ form.page }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ form.per_page.label }}</label>
+                            {{ form.per_page }}
+                        </div>
+                    </div>
+                    
+                    <!-- Row 7: Job Titles, Seniorities (for people/contacts search only) -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.job_titles.label }}</label>
+                            {{ form.job_titles }}
+                            <small class="text-muted">Filter contacts by job title</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.seniorities.label }}</label>
+                            {{ form.seniorities }}
+                            <small class="text-muted">Filter contacts by seniority level</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Buttons -->
+                    <div class="d-flex justify-content-center gap-3 mt-4 pt-3 border-top">
+                        <button type="submit" class="btn btn-search">
+                            Search Companies
+                        </button>
+                        <a href="{% url 'company_search' %}" class="btn btn-clear">
+                            Clear All
+                        </a>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Results Table (Companies) -->
+            <div id="companiesSection">
+                {% if companies is not None %}
+                <div class="results-card">
+                    <div class="results-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-3">
+                            <h5 class="mb-0">Search Results</h5>
+                            <span class="badge bg-light text-dark px-3 py-2">{{ total_count }} companies found</span>
+                        </div>
+                        <button type="button" class="btn btn-export" id="exportSelectedBtn" title="Select companies below, then click to download Excel files in a ZIP">
+                            Export selected as Excel (ZIP)
+                        </button>
+                    </div>
+                    
+                    {% if companies %}
+                    <div class="table-responsive">
+                        <table class="table" id="companiesTable">
+                            <thead>
+                                <tr>
+                                    <th class="col-checkbox">
+                                        <input type="checkbox" id="selectAllCompanies" title="Select all on this page">
+                                    </th>
+                                    <th>Company</th>
+                                    <th>Domain</th>
+                                    <th>Industry</th>
+                                    <th>Employees</th>
+                                    <th>Revenue</th>
+                                    <th>Location</th>
+                                    <th>Contacts</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for company in companies %}
+                                <tr class="clickable-row" 
+                                    data-company-id="{{ company.id }}" 
+                                    data-company-name="{{ company.name }}"
+                                    data-company-domain="{{ company.primary_domain|default:'' }}">
+                                    <td class="col-checkbox" onclick="event.stopPropagation();">
+                                        <input type="checkbox" class="company-checkbox" value="{{ company.id }}" 
+                                            data-company-name="{{ company.name }}" 
+                                            data-company-domain="{{ company.primary_domain|default:'' }}">
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-3">
+                                            {% if company.logo_url %}
+                                            <img src="{{ company.logo_url }}" alt="" class="company-logo" onerror="this.style.display='none'">
+                                            {% else %}
+                                            <div class="company-logo-placeholder">
+                                                {{ company.name|slice:":1"|upper }}
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <div class="company-name-link">{{ company.name }}</div>
+                                                {% if company.founded_year %}
+                                                <small class="text-muted">Est. {{ company.founded_year }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if company.primary_domain %}
+                                        <a href="https://{{ company.primary_domain }}" target="_blank" class="company-domain" onclick="event.stopPropagation();">
+                                            {{ company.primary_domain }}
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if company.industry %}
+                                        <span class="badge-industry">{{ company.industry }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if company.estimated_num_employees %}
+                                        {{ company.estimated_num_employees|floatformat:0 }}
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if company.annual_revenue_printed %}
+                                        <span class="badge-revenue">{{ company.annual_revenue_printed }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if company.city or company.country %}
+                                        {{ company.city }}{% if company.city and company.country %}, {% endif %}{{ company.country }}
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="view-contacts-icon" title="View Contacts">&#x1F465;</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="no-results">
+                        <div style="font-size: 3.5rem; margin-bottom: 15px;">&#x1F50D;</div>
+                        <h5>No companies found</h5>
+                        <p class="text-muted">Try adjusting your search filters</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Contacts Section (Hidden by default) -->
+            <div id="contactsSection">
+                <div class="results-card">
+                    <div class="results-header">
+                        <h5>Contacts</h5>
+                        <span class="badge bg-light text-dark px-3 py-2" id="contactsCount">0 contacts found</span>
+                    </div>
+                    <div class="contacts-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <button type="button" class="btn btn-back" id="backToCompanies">
+                                &#x2190; Back to Companies
+                            </button>
+                            <h6 id="selectedCompanyName">Company Name</h6>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table" id="contactsTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Job Title</th>
+                                    <th>Seniority</th>
+                                    <th>Location</th>
+                                    <th>LinkedIn</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contactsTableBody">
+                                <!-- Contacts will be loaded here via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="noContactsMessage" class="no-results" style="display: none;">
+                        <div style="font-size: 3.5rem; margin-bottom: 15px;">&#x1F465;</div>
+                        <h5>No contacts found</h5>
+                        <p class="text-muted">No contacts available for this company</p>
+                    </div>
+                </div>
+            </div>
+
+            {% if error %}
+            <div class="alert alert-danger alert-custom mt-4">
+                <strong>Error:</strong> {{ error }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        // Add Bootstrap classes to form fields
+        document.querySelectorAll('input[type="text"], input[type="number"]').forEach(el => {
+            el.classList.add('form-control');
+        });
+        document.querySelectorAll('select:not([multiple])').forEach(el => {
+            el.classList.add('form-select');
+        });
+        
+        // Initialize Select2 for multi-select
+        $(document).ready(function() {
+            $('select[multiple]').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select options...',
+                allowClear: true,
+                width: '100%'
+            });
+        });
+        
+        // Show loading spinner on form submit
+        document.getElementById('searchForm').addEventListener('submit', function() {
+            document.body.classList.add('loading');
+        });
+
+        // Get selected job titles and seniorities (same as frontend people – for contacts and export)
+        function getSelectedFilters() {
+            var jobTitles = [], seniorities = [];
+            try {
+                var jt = $('select[name="job_titles"]').val();
+                var sen = $('select[name="seniorities"]').val();
+                jobTitles = Array.isArray(jt) ? jt.filter(Boolean) : (jt ? [jt] : []);
+                seniorities = Array.isArray(sen) ? sen.filter(Boolean) : (sen ? [sen] : []);
+            } catch (e) {}
+            if (!jobTitles.length) {
+                var sel = document.querySelector('select[name="job_titles"]');
+                if (sel) [].slice.call(sel.selectedOptions || sel.querySelectorAll('option:checked')).forEach(function(o) { if (o.value) jobTitles.push(o.value); });
+            }
+            if (!seniorities.length) {
+                var sel = document.querySelector('select[name="seniorities"]');
+                if (sel) [].slice.call(sel.selectedOptions || sel.querySelectorAll('option:checked')).forEach(function(o) { if (o.value) seniorities.push(o.value); });
+            }
+            return { jobTitles: jobTitles || [], seniorities: seniorities || [] };
+        }
+
+        // Handle company row click
+        document.querySelectorAll('.clickable-row').forEach(row => {
+            row.addEventListener('click', function() {
+                const companyId = this.dataset.companyId;
+                const companyName = this.dataset.companyName;
+                const companyDomain = this.dataset.companyDomain;
+                
+                loadContacts(companyId, companyName, companyDomain);
+            });
+        });
+
+        // Load contacts for a company (tries with org id + domain, then domain-only if 0 results)
+        function loadContacts(companyId, companyName, companyDomain) {
+            document.body.classList.add('loading');
+            document.getElementById('selectedCompanyName').textContent = companyName;
+            
+            const filters = getSelectedFilters();
+            
+            function doFetch(useOrgId) {
+                const payload = {
+                    page: 1,
+                    per_page: 25
+                };
+                if (useOrgId && companyId) payload.organization_id = companyId;
+                if (companyDomain) payload.domains = companyDomain;
+                if (filters.jobTitles.length > 0) payload.job_titles = filters.jobTitles;
+                if (filters.seniorities.length > 0) payload.seniorities = filters.seniorities;
+                
+                return fetch('/api/people/search/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify(payload)
+                }).then(r => r.json());
+            }
+            
+            doFetch(true)
+                .then(data => {
+                    if (data.error) {
+                        document.body.classList.remove('loading');
+                        alert('Error: ' + data.error);
+                        return;
+                    }
+                    // If 0 contacts but we have domain, retry with domain-only (Apollo sometimes matches better by domain)
+                    if ((!data.people || data.people.length === 0) && companyDomain && companyId) {
+                        return doFetch(false).then(data2 => {
+                            document.body.classList.remove('loading');
+                            if (data2.error) { alert('Error: ' + data2.error); return; }
+                            displayContacts(data2.people || [], data2.total_count || 0);
+                            document.getElementById('companiesSection').style.display = 'none';
+                            document.getElementById('contactsSection').style.display = 'block';
+                        });
+                    }
+                    document.body.classList.remove('loading');
+                    displayContacts(data.people || [], data.total_count || 0);
+                    document.getElementById('companiesSection').style.display = 'none';
+                    document.getElementById('contactsSection').style.display = 'block';
+                })
+                .catch(error => {
+                    document.body.classList.remove('loading');
+                    alert('Error loading contacts: ' + error.message);
+                });
+        }
+
+        // Display contacts in table
+        function displayContacts(contacts, totalCount) {
+            const tbody = document.getElementById('contactsTableBody');
+            const noContactsMsg = document.getElementById('noContactsMessage');
+            const table = document.getElementById('contactsTable');
+            
+            document.getElementById('contactsCount').textContent = totalCount + ' contacts found';
+            
+            if (!contacts || contacts.length === 0) {
+                tbody.innerHTML = '';
+                table.style.display = 'none';
+                noContactsMsg.style.display = 'block';
+                return;
+            }
+            
+            table.style.display = 'table';
+            noContactsMsg.style.display = 'none';
+            
+            tbody.innerHTML = contacts.map(contact => {
+                const initials = ((contact.first_name || '').charAt(0) + (contact.last_name || '').charAt(0)).toUpperCase() || '?';
+                const location = [contact.city, contact.state, contact.country].filter(Boolean).join(', ') || '-';
+                
+                return `
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="contact-avatar">${initials}</div>
+                                <div>
+                                    <div class="fw-semibold">${contact.name || '-'}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            ${contact.email ? 
+                                `<a href="mailto:${contact.email}" class="contact-email">${contact.email}</a>` : 
+                                '<span class="text-muted">-</span>'}
+                        </td>
+                        <td>
+                            ${contact.title ? 
+                                `<span class="badge-title">${contact.title}</span>` : 
+                                '<span class="text-muted">-</span>'}
+                        </td>
+                        <td>
+                            ${contact.seniority ? 
+                                `<span class="badge-seniority">${contact.seniority}</span>` : 
+                                '<span class="text-muted">-</span>'}
+                        </td>
+                        <td>${location}</td>
+                        <td>
+                            ${contact.linkedin_url ? 
+                                `<a href="${contact.linkedin_url}" target="_blank" class="company-domain">View Profile</a>` : 
+                                '<span class="text-muted">-</span>'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Back to companies button
+        document.getElementById('backToCompanies').addEventListener('click', function() {
+            document.getElementById('contactsSection').style.display = 'none';
+            document.getElementById('companiesSection').style.display = 'block';
+        });
+
+        // Select all companies on this page
+        const selectAllEl = document.getElementById('selectAllCompanies');
+        if (selectAllEl) {
+            selectAllEl.addEventListener('change', function() {
+                document.querySelectorAll('.company-checkbox').forEach(cb => cb.checked = this.checked);
+            });
+        }
+
+        // People search API call (same as loadContacts) – returns people with email enrich
+        function fetchPeopleForCompany(company, filters, csrfToken) {
+            var payload = { page: 1, per_page: 100 };
+            if (company.id) payload.organization_id = company.id;
+            if (company.domain) payload.domains = company.domain;
+            if (filters.jobTitles && filters.jobTitles.length) payload.job_titles = filters.jobTitles;
+            if (filters.seniorities && filters.seniorities.length) payload.seniorities = filters.seniorities;
+            return fetch('/api/people/search/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify(payload)
+            }).then(function(r) { return r.json(); });
+        }
+
+        // Export: 1) call people search + enrich per company (visible in Network), 2) send data to export → ZIP
+        function onExportClick() {
+            const checked = document.querySelectorAll('.company-checkbox:checked');
+            if (!checked.length) {
+                alert('Please select at least one company.');
+                return;
+            }
+            const companies = Array.from(checked).map(cb => ({
+                id: cb.value,
+                name: cb.dataset.companyName || cb.value,
+                domain: cb.dataset.companyDomain || ''
+            }));
+            const filters = getSelectedFilters();
+            const csrfEl = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (!csrfEl || !csrfEl.value) {
+                alert('Export failed: missing CSRF token. Refresh the page and try again.');
+                return;
+            }
+            var exportBtnEl = document.getElementById('exportSelectedBtn');
+            if (exportBtnEl) exportBtnEl.disabled = true;
+            document.body.classList.add('loading');
+            console.log('Export: filters (same as frontend people)', { jobTitles: filters.jobTitles, seniorities: filters.seniorities });
+            console.log('Export: calling people/search for', companies.length, 'company(ies)');
+            var csrfToken = csrfEl.value;
+            function fetchOne(c) {
+                return fetchPeopleForCompany(c, filters, csrfToken)
+                    .then(function(data) {
+                        var people = (data && data.people) ? data.people : [];
+                        if (!people.length && c.domain && c.id) {
+                            return fetchPeopleForCompany({ id: null, domain: c.domain, name: c.name }, filters, csrfToken)
+                                .then(function(data2) { return (data2 && data2.people) ? data2.people : []; });
+                        }
+                        return people;
+                    })
+                    .then(function(people) {
+                        console.log('Export: got', people.length, 'people for', c.name);
+                        return { id: c.id, name: c.name, domain: c.domain, people: people };
+                    })
+                    .catch(function(err) {
+                        console.error('Export: people fetch failed for', c.name, err);
+                        return { id: c.id, name: c.name, domain: c.domain, people: [] };
+                    });
+            }
+            Promise.all(companies.map(fetchOne))
+                .then(function(companiesWithPeople) {
+                    console.log('Export: sending', companiesWithPeople.length, 'companies with people to export API');
+                    return fetch('/api/export/companies/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                        body: JSON.stringify({ companies: companiesWithPeople, job_titles: filters.jobTitles || [], seniorities: filters.seniorities || [] })
+                    });
+                })
+                .then(function(r) {
+                    if (!r.ok) return r.json().then(function(j) { return Promise.reject(new Error(j.error || r.statusText)); });
+                    return r.blob();
+                })
+                .then(function(blob) {
+                    console.log('Export: received ZIP, size', blob.size);
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'companies_export.zip';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                })
+                .catch(function(err) {
+                    console.error('Export failed', err);
+                    alert('Export failed: ' + (err.message || err));
+                })
+                .finally(function() {
+                    if (exportBtnEl) exportBtnEl.disabled = false;
+                    document.body.classList.remove('loading');
+                });
+        }
+        const exportBtn = document.getElementById('exportSelectedBtn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', onExportClick);
+        } else {
+            document.body.addEventListener('click', function(e) {
+                if (e.target.id === 'exportSelectedBtn' || (e.target.closest && e.target.closest('#exportSelectedBtn'))) {
+                    onExportClick();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
