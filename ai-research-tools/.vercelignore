@@ -1,0 +1,21 @@
+# Dependencies (Vercel installs from requirements.txt)
+venv/
+.venv/
+env/
+
+# Git & IDE
+.git/
+.gitignore
+*.md
+.cursor/
+
+# Local / dev
+.env
+.env.*
+*.sqlite3
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
