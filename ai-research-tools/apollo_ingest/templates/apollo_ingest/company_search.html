@@ -711,12 +711,16 @@
                 
                 return fetch('/api/people/search/', {
                     method: 'POST',
+                    credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                     },
                     body: JSON.stringify(payload)
-                }).then(r => r.json());
+                }).then(r => {
+                    if (r.status === 401) { window.location.href = '/login/'; return Promise.reject(new Error('Authentication required')); }
+                    return r.json();
+                });
             }
             
             doFetch(true)
@@ -828,9 +832,13 @@
             if (filters.seniorities && filters.seniorities.length) payload.seniorities = filters.seniorities;
             return fetch('/api/people/search/', {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify(payload)
-            }).then(function(r) { return r.json(); });
+            }).then(function(r) {
+                if (r.status === 401) { window.location.href = '/login/'; return Promise.reject(new Error('Authentication required')); }
+                return r.json();
+            });
         }
 
         // Export: 1) call people search + enrich per company (visible in Network), 2) send data to export → ZIP
@@ -881,11 +889,13 @@
                     console.log('Export: sending', companiesWithPeople.length, 'companies with people to export API');
                     return fetch('/api/export/companies/', {
                         method: 'POST',
+                        credentials: 'include',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                         body: JSON.stringify({ companies: companiesWithPeople, job_titles: filters.jobTitles || [], seniorities: filters.seniorities || [] })
                     });
                 })
                 .then(function(r) {
+                    if (r.status === 401) { window.location.href = '/login/'; return Promise.reject(new Error('Authentication required')); }
                     if (!r.ok) return r.json().then(function(j) { return Promise.reject(new Error(j.error || r.statusText)); });
                     return r.blob();
                 })

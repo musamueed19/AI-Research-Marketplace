@@ -1,9 +1,11 @@
 """
 Middleware: require login for entire site. Only staff/superuser can access.
 Unauthenticated or non-staff users are redirected to login page.
+API requests get 401 JSON instead of redirect so frontend doesn't receive HTML.
 """
 
 from django.conf import settings
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.utils.deprecation import MiddlewareMixin
 
@@ -46,8 +48,18 @@ class LoginRequiredMiddleware(MiddlewareMixin):
             return None
         # Require authenticated user
         if not request.user.is_authenticated:
+            if path.startswith("/api/"):
+                return JsonResponse(
+                    {"detail": "Authentication required"},
+                    status=401,
+                )
             return redirect(settings.LOGIN_URL)
         # Require staff or superuser (super admin only)
         if not (request.user.is_staff or request.user.is_superuser):
+            if path.startswith("/api/"):
+                return JsonResponse(
+                    {"detail": "Authentication required"},
+                    status=401,
+                )
             return redirect(settings.LOGIN_URL)
         return None
