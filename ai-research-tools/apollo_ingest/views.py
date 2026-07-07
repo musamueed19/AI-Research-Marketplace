@@ -1,6 +1,8 @@
 import io
 import logging
+import os
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -40,6 +42,8 @@ CREDITS_PEOPLE_SEARCH = 1
 CREDITS_TAGS_SEARCH = 0
 CREDITS_ENRICH_PER_PERSON = 1  # bulk_match: ~1 credit per contact
 CREDITS_ORG_ENRICH = 1  # organization enrich/get: ~1 credit per company
+# Parallel Apollo calls during export (I/O-bound). Keep modest to avoid rate limits.
+EXPORT_MAX_WORKERS = max(1, int(os.getenv("EXPORT_MAX_WORKERS", "8")))
 
 
 def log_apollo_credits(endpoint_label: str, credits: int, detail: str = ""):
@@ -771,6 +775,78 @@ def _fetch_company_technologies(
     return _format_organization_technologies(org), credits
 
 
+def _fetch_export_company_bundle(
+    company: dict, job_titles: list, seniorities: list
+) -> dict:
+    """Fetch technologies + people for one company (used by parallel export workers)."""
+    cid = company.get("id")
+    cname = company.get("name") or "company"
+    cdomain = (company.get("domain") or company.get("primary_domain") or "").strip()
+    technologies, tech_credits = _fetch_company_technologies(
+        organization_id=cid,
+        domain=cdomain or None,
+        name=cname,
+    )
+    people = company.get("people") if isinstance(company.get("people"), list) else []
+    server_fetched = False
+    if not people:
+        server_fetched = True
+        try:
+            logger.info("Export: fetching people for company id=%s name=%s", cid, cname)
+            people = get_people_for_company(
+                organization_id=cid,
+                domain=cdomain or None,
+                job_titles=job_titles,
+                seniorities=seniorities,
+                per_page=100,
+            )
+        except Exception as e:
+            logger.warning("Export: skip company id=%s name=%s: %s", cid, cname, e)
+            people = []
+    return {
+        "cname": cname,
+        "company_country": _company_country_display(company),
+        "technologies": technologies,
+        "people": people,
+        "tech_credits": tech_credits,
+        "server_fetched": server_fetched,
+    }
+
+
+def _fetch_export_bundles_parallel(
+    companies: list, job_titles: list, seniorities: list
+) -> list[dict]:
+    """Promise.all equivalent in Python: fetch all companies concurrently."""
+    if not companies:
+        return []
+    workers = min(EXPORT_MAX_WORKERS, len(companies))
+    results: list[dict | None] = [None] * len(companies)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        future_to_index = {
+            executor.submit(
+                _fetch_export_company_bundle, company, job_titles, seniorities
+            ): index
+            for index, company in enumerate(companies)
+        }
+        for future in as_completed(future_to_index):
+            index = future_to_index[future]
+            try:
+                results[index] = future.result()
+            except Exception as e:
+                company = companies[index]
+                cname = company.get("name") or "company"
+                logger.warning("Export worker failed for %s: %s", cname, e)
+                results[index] = {
+                    "cname": cname,
+                    "company_country": _company_country_display(company),
+                    "technologies": "",
+                    "people": [],
+                    "tech_credits": 0,
+                    "server_fetched": False,
+                }
+    return [bundle for bundle in results if bundle is not None]
+
+
 @require_http_methods(["POST"])
 @ensure_csrf_cookie
 def export_companies_view(request):
@@ -801,14 +877,13 @@ def export_companies_view(request):
         detail="%s companies with people[] from request, %s will fetch server-side (see below)" % (companies_with_people, fetch_count),
     )
     logger.info(
-        "Export: %s company(ies) | %s with people[] (no extra credits) | %s to fetch server-side (credits = search + enrich per company)",
+        "Export: %s company(ies) | %s with people[] (no extra credits) | %s to fetch server-side | parallel workers=%s",
         len(companies),
         companies_with_people,
         fetch_count,
+        min(EXPORT_MAX_WORKERS, len(companies)),
     )
     zip_buffer = io.BytesIO()
-    server_side_fetches = 0
-    tech_credits = 0
     wb_contacts = Workbook()
     ws = wb_contacts.active
     ws.title = "Contacts"
@@ -830,42 +905,20 @@ def export_companies_view(request):
     ws_tech.append(["Company Name", "Technologies"])
     ws_tech.column_dimensions["A"].width = 30
     ws_tech.column_dimensions["B"].width = 120
-    for c in companies:
-        cid = c.get("id")
-        cname = c.get("name") or "company"
-        cdomain = (c.get("domain") or c.get("primary_domain") or "").strip()
-        company_country = _company_country_display(c)
-        technologies, used_credits = _fetch_company_technologies(
-            organization_id=cid,
-            domain=cdomain or None,
-            name=cname,
-        )
-        tech_credits += used_credits
-        ws_tech.append([cname, technologies])
-        people = c.get("people") if isinstance(c.get("people"), list) else []
-        if not people:
+
+    bundles = _fetch_export_bundles_parallel(companies, job_titles, seniorities)
+    server_side_fetches = 0
+    tech_credits = 0
+    for bundle in bundles:
+        tech_credits += bundle.get("tech_credits") or 0
+        if bundle.get("server_fetched"):
             server_side_fetches += 1
-            try:
-                logger.info(
-                    "Export: fetching people for company id=%s name=%s", cid, cname
-                )
-                people = get_people_for_company(
-                    organization_id=cid,
-                    domain=cdomain or None,
-                    job_titles=job_titles,
-                    seniorities=seniorities,
-                    per_page=100,
-                )
-            except Exception as e:
-                logger.warning(
-                    "Export: skip company id=%s name=%s: %s", cid, cname, e
-                )
-                people = []
-        for p in people:
+        ws_tech.append([bundle["cname"], bundle["technologies"]])
+        for p in bundle.get("people") or []:
             ws.append(
                 [
-                    cname,
-                    company_country,
+                    bundle["cname"],
+                    bundle["company_country"],
                     p.get("name") or "",
                     p.get("email") or "",
                     p.get("linkedin_url") or "",
